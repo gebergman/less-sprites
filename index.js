@@ -97,7 +97,7 @@ Sprites.prototype.getSourceFiles = function(files) {
 
 	for (var i = 0, l = files.length; i < l; i++) {
 		file = path.basename(files[i]);
-		if (file.match(/.*\.png$/i) && file != this.destPath) {
+		if (file.match(/.*\.png$/i) && file != this.destPath || file === "*") {
 			sourceFiles.push(file);
 		}
 	}
