@@ -28,6 +28,8 @@ There are more options you can specify:
 	"files": ["icon1.png", "icon2.png"]
 	// Location and name of the final sprite, default is same as the .json file.
 	"sprite": "icons-sprite.png",
+	// Space between the images in the sprite
+	"spacing": 50,
 	// Location and name of the final LESS file, default is same as the .json file.
 	"less": "../less/icon-sprite.less"
 }
