@@ -24,7 +24,7 @@ There are more options you can specify:
 	"direction": "right|bottom",
 	// Directory relative to the .json file where source files are located, default "."
 	"dir": ".",
-	// List of source images (without directory, in PNG).
+	// List of source images (without directory) or "*" to use all PNG files
 	"files": ["icon1.png", "icon2.png"]
 	// Location and name of the final sprite, default is same as the .json file.
 	"sprite": "icons-sprite.png",
