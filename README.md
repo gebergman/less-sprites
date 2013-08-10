@@ -46,10 +46,10 @@ In your stylesheet you target the original image, not the sprite; it will be tra
 ### CSS without `less-sprites`
 ```css
 .icon-first {
-	background: url('/images/icon1.png');
+	background: url('/images/icons_sprite/icon1.png');
 }
 .icon-second {
-	background: url('/images/icon2.png');
+	background: url('/images/icons_sprite/icon2.png');
 }
 ```
 
