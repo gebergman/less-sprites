@@ -16,7 +16,7 @@ function Sprites() {
 	this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath) {
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath, spacing) {
   var stats;
   if (sourceDir !== false) {
     this.sourceDir = sourceDir;
@@ -37,6 +37,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 
   this.destPath = path.resolve(destPath);
   this.lessPath = path.resolve(lessPath);
+  this.spacing = spacing / 2 || 0;
   this.files = [];
 
   this.spriteFile = im();
@@ -57,14 +58,36 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
     throw new Error('No valid source files were provided.');
   }
 
+  this.tmpOutput = this.sourceDir + '/.images';
+  this.tempDirectory(this.tmpOutput, true);
+
   this.combine(sourceFiles)
     .then(function() {
       this.spriteFile.write(this.destPath, function(err) {
         if (err) throw err;
+        this.tempDirectory(this.tmpOutput);
       }.bind(this));
       this.writeStyles();
 
     }.bind(this));
+};
+
+Sprites.prototype.tempDirectory = function (destSource, create) {
+  var tmpfiles;
+  create = create || false;
+
+  if (fs.existsSync(destSource)) {
+    tmpfiles = fs.readdirSync(destSource);
+
+    tmpfiles.forEach(function (element) {
+      fs.unlinkSync(destSource + '/' + element);
+    });
+    fs.rmdirSync(destSource);
+  }
+
+  if (create) {
+    fs.mkdirSync(destSource);
+  }
 };
 
 Sprites.prototype.getSourceFiles = function(files) {
@@ -94,19 +117,32 @@ Sprites.prototype.combine = function(files) {
 };
 
 Sprites.prototype.processFile = function(fileName, callback) {
-	var filePath = this.sourceDir + '/' + fileName;
-	if (!fs.existsSync(filePath)) {
-		throw new Error('Source file "' + filePath + '" does not exist.');
-	}
-	im(filePath).size(function(err, size) {
-		if (err) throw err;
-		this.spriteFile.append(filePath, this.specs.appendRight);
-		this.files.push({
-			name: fileName,
-			size: size,
-		});
-		callback();
-	}.bind(this));
+  var _this = this,
+      filePath = this.sourceDir + '/' + fileName,
+      newFile = this.tmpOutput + '/' + fileName;
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('Source file "' + filePath + '" does not exist.');
+  }
+
+  im(filePath)
+    .size(function(err, size) {
+      this.out('-background', 'none');
+      this.extent(size.width + _this.spacing, size.height + _this.spacing);
+      this.write(newFile, function(error) {
+        if (error) throw error;
+        im(newFile)
+          .size(function(err, size) {
+            if (err) throw err;
+            this.spriteFile.append(newFile, this.specs.appendRight);
+            this.files.push({
+              name: fileName,
+              size: size
+            });
+            callback();
+          }.bind(_this));
+      });
+    });
 };
 
 Sprites.prototype.writeStyles = function() {
@@ -187,7 +223,8 @@ Sprites.prototype.readArgs = function() {
 		path.resolve(specsFile, '..', specs['dir']),
 		specs['files'],
 		specs['sprite'],
-		specs['less']
+		specs['less'],
+		specs['spacing']
 	);
 };
 
