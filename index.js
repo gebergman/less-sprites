@@ -16,7 +16,7 @@ function Sprites() {
 	this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath, spacing) {
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath, relativePath, spacing) {
   var stats;
   if (sourceDir !== false) {
     this.sourceDir = sourceDir;
@@ -37,6 +37,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 
   this.destPath = path.resolve(destPath);
   this.lessPath = path.resolve(lessPath);
+  this.relativePath = relativePath || '/images';
   this.spacing = spacing / 2 || 0;
   this.files = [];
 
@@ -146,34 +147,34 @@ Sprites.prototype.processFile = function(fileName, callback) {
 };
 
 Sprites.prototype.writeStyles = function() {
-	var relPath = path.relative(this.sourceDir, path.dirname(this.destPath));
-	var spriteFile = relPath + '/' + path.basename(this.destPath);
-	var content = '';
-	var x = 0;
-	var y = 0;
+  var relPath = this.relativePath,
+      spriteFile = relPath + '/' + path.basename(this.destPath),
+      content = '',
+      x = 0,
+      y = 0;
 
-	for (var i = 0, l = this.files.length; i < l; i++) {
-		content += util.format(
-			'.sprite("%s", @_spriteDir) {\n\tbackground-image: url("@{_spriteDir}%s");\n\tbackground-position: %dpx %dpx;\n}\n',
-			this.files[i].name, spriteFile, x, y
-		);
-		if (this.specs.appendRight) {
-			x -= this.files[i].size.width;
-		} else {
-			y -= this.files[i].size.height;
-		}
-	}
+  for (var i = 0, l = this.files.length; i < l; i++) {
+    content += util.format(
+      '.sprite("%s") {\n' +
+        '\tbackground-image: url("%s");\n' +
+        '\tbackground-position: %dpx %dpx;' +
+      '}\n',
+      this.files[i].name,
+      spriteFile,
+      x,
+      y
+    );
 
-	content += '.sprite (@_) {\n' +
-		'\t@path: e(@_);\n' +
-		'\t@spriteDir: `"@{path}".match(/^(.*\\/)([^\\/]*)$/)[1]`;\n' +
-		'\t@imgName: `"@{path}".match(/^(.*\\/)([^\\/]*)$/)[2]`;\n' +
-		'\t.sprite(@imgName, @spriteDir);\n' +
-		'}\n';
+    if (this.specs.appendRight) {
+      x -= this.files[i].size.width;
+    } else {
+      y -= this.files[i].size.height;
+    }
+  }
 
-	fs.writeFile(this.lessPath, content, function(err) {
-		if (err) throw err;
-	});
+  fs.writeFile(this.lessPath, content, function(err) {
+    if (err) throw err;
+  });
 };
 
 Sprites.prototype.readArgs = function() {
@@ -224,6 +225,7 @@ Sprites.prototype.readArgs = function() {
 		specs['files'],
 		specs['sprite'],
 		specs['less'],
+		specs['httpPath'],
 		specs['spacing']
 	);
 };
