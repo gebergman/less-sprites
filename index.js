@@ -17,42 +17,54 @@ function Sprites() {
 }
 
 Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath) {
-	var readDir = false;
-	if (sourceDir !== false) {
-		this.sourceDir = sourceDir;
-	} else {
-		this.sourceDir = '.'; // default is current directory
-		if (sourceFiles.length == 1) {
-			if (!fs.existsSync(sourceFiles[0])) {
-				throw new Error('Source file "' + sourceFiles[0] + '" does not exist.');
-			}
-			var stats = fs.statSync(sourceFiles[0]);
-			if (stats.isDirectory()) {
-				this.sourceDir = sourceFiles[0];
-				sourceFiles = fs.readdirSync(this.sourceDir);
-			}
-		}
-	}
+  var stats;
+  if (sourceDir !== false) {
+    this.sourceDir = sourceDir;
+  } else {
+    this.sourceDir = '.'; // default is current directory
+    stats = fs.existsSync(sourceFiles[0]);
+    if (sourceFiles.length === 1) {
+      if (!stats) {
+        throw new Error('Source file "' + sourceFiles[0] + '" does not exist.');
+      }
 
-	this.destPath = path.resolve(destPath);
-	this.lessPath = path.resolve(lessPath);
+      if (stats.isDirectory()) {
+        this.sourceDir = sourceFiles[0];
+        sourceFiles = fs.readdirSync(this.sourceDir);
+      }
+    }
+  }
 
-	this.files = [];
-	this.spriteFile = im();
-	this.spriteFile.out('-background', 'none');
+  this.destPath = path.resolve(destPath);
+  this.lessPath = path.resolve(lessPath);
+  this.files = [];
 
-	sourceFiles = this.getSourceFiles(sourceFiles);
-	if (!sourceFiles.length) {
-		throw new Error('No valid source files were provided.');
-	}
+  this.spriteFile = im();
+  this.spriteFile.out('-background', 'none');
 
-	this.combine(sourceFiles)
-		.then(function() {
-			this.spriteFile.write(this.destPath, function(err) {
-				if (err) throw err;
-			});
-			this.writeStyles();
-		}.bind(this));
+  sourceFiles = this.getSourceFiles(sourceFiles);
+  if (sourceFiles[0] === '*') {
+    var files = fs.readdirSync(this.sourceDir);
+    sourceFiles = [];
+    files.forEach(function(element) {
+      if (element.match(/.png/i) !== null) {
+        sourceFiles.push(element);
+      }
+    });
+  }
+
+  if (!sourceFiles.length) {
+    throw new Error('No valid source files were provided.');
+  }
+
+  this.combine(sourceFiles)
+    .then(function() {
+      this.spriteFile.write(this.destPath, function(err) {
+        if (err) throw err;
+      }.bind(this));
+      this.writeStyles();
+
+    }.bind(this));
 };
 
 Sprites.prototype.getSourceFiles = function(files) {
