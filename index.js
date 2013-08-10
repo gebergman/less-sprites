@@ -1,22 +1,24 @@
 #!/usr/bin/env node
 
-var async = require('async');
-var path = require('path');
-var util = require('util');
-var gm = require('gm');
-var im = gm.subClass({ imageMagick: true });
-var fs = require('fs');
-var Q = require('q');
+var async = require('async'),
+    path = require('path'),
+    util = require('util'),
+    gm = require('gm'),
+    im = gm.subClass({
+      imageMagick: true
+    }),
+    fs = require('fs'),
+    Q = require('q');
 
 
 function Sprites() {
-	this.specs = {
-		appendRight: false,
-	};
-	this.readArgs();
+  this.specs = {
+    appendRight: false
+  };
+  this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath, relativePath, spacing) {
+Sprites.prototype.createSprite = function (sourceDir, sourceFiles, destPath, lessPath, relativePath, spacing) {
   var stats;
   if (sourceDir !== false) {
     this.sourceDir = sourceDir;
@@ -48,7 +50,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
   if (sourceFiles[0] === '*') {
     var files = fs.readdirSync(this.sourceDir);
     sourceFiles = [];
-    files.forEach(function(element) {
+    files.forEach(function (element) {
       if (element.match(/.png/i) !== null) {
         sourceFiles.push(element);
       }
@@ -63,8 +65,8 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
   this.tempDirectory(this.tmpOutput, true);
 
   this.combine(sourceFiles)
-    .then(function() {
-      this.spriteFile.write(this.destPath, function(err) {
+    .then(function () {
+      this.spriteFile.write(this.destPath, function (err) {
         if (err) throw err;
         this.tempDirectory(this.tmpOutput);
       }.bind(this));
@@ -91,33 +93,34 @@ Sprites.prototype.tempDirectory = function (destSource, create) {
   }
 };
 
-Sprites.prototype.getSourceFiles = function(files) {
-	var file,
-		sourceFiles = [];
+Sprites.prototype.getSourceFiles = function (files) {
+  var file,
+      sourceFiles = [],
+      i;
 
-	for (var i = 0, l = files.length; i < l; i++) {
-		file = path.basename(files[i]);
-		if (file.match(/.*\.png$/i) && file != this.destPath || file === "*") {
-			sourceFiles.push(file);
-		}
-	}
+  for (i = 0, l = files.length; i < l; i++) {
+    file = path.basename(files[i]);
+    if (file.match(/.*\.png$/i) && file != this.destPath || file === "*") {
+      sourceFiles.push(file);
+    }
+  }
 
-	return sourceFiles;
+  return sourceFiles;
 };
 
-Sprites.prototype.combine = function(files) {
-	var deferred = Q.defer();
-	async.each(files, this.processFile.bind(this), function(err) {
-		if (err) {
-			deferred.reject(new Error(err));
-		} else {
-			deferred.resolve();
-		}
-	});
-	return deferred.promise;
+Sprites.prototype.combine = function (files) {
+  var deferred = Q.defer();
+  async.each(files, this.processFile.bind(this), function (err) {
+    if (err) {
+      deferred.reject(new Error(err));
+    } else {
+      deferred.resolve();
+    }
+  });
+  return deferred.promise;
 };
 
-Sprites.prototype.processFile = function(fileName, callback) {
+Sprites.prototype.processFile = function (fileName, callback) {
   var _this = this,
       filePath = this.sourceDir + '/' + fileName,
       newFile = this.tmpOutput + '/' + fileName;
@@ -127,13 +130,13 @@ Sprites.prototype.processFile = function(fileName, callback) {
   }
 
   im(filePath)
-    .size(function(err, size) {
+    .size(function (err, size) {
       this.out('-background', 'none');
       this.extent(size.width + _this.spacing, size.height + _this.spacing);
-      this.write(newFile, function(error) {
+      this.write(newFile, function (error) {
         if (error) throw error;
         im(newFile)
-          .size(function(err, size) {
+          .size(function (err, size) {
             if (err) throw err;
             this.spriteFile.append(newFile, this.specs.appendRight);
             this.files.push({
@@ -146,7 +149,7 @@ Sprites.prototype.processFile = function(fileName, callback) {
     });
 };
 
-Sprites.prototype.writeStyles = function() {
+Sprites.prototype.writeStyles = function () {
   var relPath = this.relativePath,
       spriteFile = relPath + '/' + path.basename(this.destPath),
       content = '',
@@ -172,66 +175,67 @@ Sprites.prototype.writeStyles = function() {
     }
   }
 
-  fs.writeFile(this.lessPath, content, function(err) {
+  fs.writeFile(this.lessPath, content, function (err) {
     if (err) throw err;
   });
 };
 
-Sprites.prototype.readArgs = function() {
-	var argv = process.argv.splice(2);
+Sprites.prototype.readArgs = function () {
+  var argv = process.argv.splice(2),
+      specsFile = argv[0],
+      specs;
 
-	if (!argv.length || argv[0] == '-h' || argv[0] == '--help') {
-		this.printUsage();
-		process.exit();
-	}
+  if (!argv.length || argv[0] == '-h' || argv[0] == '--help') {
+    this.printUsage();
+    process.exit();
+  }
 
-	var specsFile = argv[0];
-	if (!fs.existsSync(specsFile)) {
-		console.log('Error: Specs file "' + specsFile + '" does not exist.');
-		process.exit();
-	}
-	specsFile =  path.resolve(specsFile);
-	var specs = require(specsFile);
-	if (!specs['dir']) {
-		specs['dir'] = '.';
-	}
+  if (!fs.existsSync(specsFile)) {
+    console.log('Error: Specs file "' + specsFile + '" does not exist.');
+    process.exit();
+  }
+  specsFile = path.resolve(specsFile);
+  specs = require(specsFile);
+  if (!specs['dir']) {
+    specs['dir'] = '.';
+  }
 
- 	// default directory is same as the json
-	if (!specs['sprite']) {
-		specs['sprite'] = path.basename(specsFile, '.json') + '.png';
-	}
-	// relative to the specsFile directory.
-	if (specs['sprite'][0] != '/') {
-		specs['sprite'] = path.dirname(specsFile) + '/' + specs['sprite'];
-	}
+  // default directory is same as the json
+  if (!specs['sprite']) {
+    specs['sprite'] = path.basename(specsFile, '.json') + '.png';
+  }
+  // relative to the specsFile directory.
+  if (specs['sprite'][0] != '/') {
+    specs['sprite'] = path.dirname(specsFile) + '/' + specs['sprite'];
+  }
 
-	if (!specs['less']) {
-		specs['less'] = path.basename(specsFile, '.json') + '.less';
-	}
+  if (!specs['less']) {
+    specs['less'] = path.basename(specsFile, '.json') + '.less';
+  }
 
-	if (specs['less'][0] != '/') {
-		specs['less'] = path.dirname(specsFile) + '/' + specs['less'];
-	}
+  if (specs['less'][0] != '/') {
+    specs['less'] = path.dirname(specsFile) + '/' + specs['less'];
+  }
 
-	if (!specs['files']) {
-		throw new Error('Missing "files" property.');
-	}
-	if (specs['direction']) {
-		this.specs.appendRight = specs['direction'] == 'right';
-	}
+  if (!specs['files']) {
+    throw new Error('Missing "files" property.');
+  }
+  if (specs['direction']) {
+    this.specs.appendRight = specs['direction'] == 'right';
+  }
 
-	this.createSprite(
-		path.resolve(specsFile, '..', specs['dir']),
-		specs['files'],
-		specs['sprite'],
-		specs['less'],
-		specs['httpPath'],
-		specs['spacing']
-	);
+  this.createSprite(
+    path.resolve(specsFile, '..', specs['dir']),
+    specs['files'],
+    specs['sprite'],
+    specs['less'],
+    specs['httpPath'],
+    specs['spacing']
+  );
 };
 
-Sprites.prototype.printUsage = function() {
-	console.log('Usage: less-sprites sprite-specs.json');
+Sprites.prototype.printUsage = function () {
+  console.log('Usage: less-sprites sprite-specs.json');
 };
 
 new Sprites();
