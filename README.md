@@ -28,6 +28,8 @@ There are more options you can specify:
 	"files": ["icon1.png", "icon2.png"]
 	// Location and name of the final sprite, default is same as the .json file.
 	"sprite": "icons-sprite.png",
+	// The http path to the image (default: /images)
+	"httpPath": '/images',
 	// Space between the images in the sprite
 	"spacing": 50,
 	// Location and name of the final LESS file, default is same as the .json file.
@@ -44,10 +46,10 @@ In your stylesheet you target the original image, not the sprite; it will be tra
 ### CSS without `less-sprites`
 ```css
 .icon-first {
-	background: url('/img/icon1.png');
+	background: url('/images/icon1.png');
 }
 .icon-second {
-	background: url('img/icon2.png');
+	background: url('/images/icon2.png');
 }
 ```
 
@@ -56,19 +58,19 @@ In your stylesheet you target the original image, not the sprite; it will be tra
 @import "icons/icons-sprite.less"
 
 .icon-first {
-	.sprite('/img/icon1.png');
+	.sprite('icon1.png');
 }
 .icon-second {
-	.sprite('img/icon2.png');
+	.sprite('icon2.png');
 }
 ```
 which is later compiled into final CSS:
 ```css
 .icon-first {
-	background: url("/img/icons-sprite.png") 0px 0px;
+	background: url("/images/icons-sprite.png") 0px 0px;
 }
 .icon-second {
-	background: url("img/icons-sprite.png") 0px -20px;
+	background: url("images/icons-sprite.png") 0px -20px;
 }
 
 ```
