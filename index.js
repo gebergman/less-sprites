@@ -19,35 +19,27 @@ function Sprites() {
 }
 
 Sprites.prototype.createSprite = function (sourceDir, sourceFiles, destPath, lessPath, relativePath, spacing) {
-  var stats;
-  if (sourceDir !== false) {
+  if (sourceDir) {
     this.sourceDir = sourceDir;
-  } else {
-    this.sourceDir = '.'; // default is current directory
-    stats = fs.existsSync(sourceFiles[0]);
-    if (sourceFiles.length === 1) {
-      if (!stats) {
-        throw new Error('Source file "' + sourceFiles[0] + '" does not exist.');
-      }
-
-      if (stats.isDirectory()) {
-        this.sourceDir = sourceFiles[0];
-        sourceFiles = fs.readdirSync(this.sourceDir);
-      }
-    }
+    this.retinaSourceDir = sourceDir + '2x';
   }
 
   this.destPath = path.resolve(destPath);
+
+  if (this.retina) {
+    this.retinaDestPath = path.resolve(this.retinaDestPath);
+  }
+
   this.lessPath = path.resolve(lessPath);
   this.relativePath = relativePath || '/images';
-  this.spacing = spacing / 2 || 0;
+  this.spacing = spacing || 0;
   this.files = [];
+  this.retinaFiles = [];
+  this.renderRetina = false;
 
-  this.spriteFile = im();
-  this.spriteFile.out('-background', 'none');
+  this.setSpriteInstance();
 
-  sourceFiles = this.getSourceFiles(sourceFiles);
-
+  sourceFiles = this.getSourceFiles(sourceFiles).sort();
 
   if (!sourceFiles.length) {
     throw new Error('No valid source files were provided.');
@@ -60,11 +52,28 @@ Sprites.prototype.createSprite = function (sourceDir, sourceFiles, destPath, les
     .then(function () {
       this.spriteFile.write(this.destPath, function (err) {
         if (err) throw err;
-        this.tempDirectory(this.tmpOutput);
+        if (this.retina) {
+          this.renderRetina = true;
+          this.setSpriteInstance();
+          this.combine(sourceFiles)
+            .then(function () {
+              this.spriteFile.write(this.retinaDestPath, function (err) {
+                if (err) throw err;
+                this.tempDirectory(this.tmpOutput);
+                this.writeStyles();
+              }.bind(this));
+            }.bind(this));
+        } else {
+          this.tempDirectory(this.tmpOutput);
+          this.writeStyles();
+        }
       }.bind(this));
-      this.writeStyles();
-
     }.bind(this));
+};
+
+Sprites.prototype.setSpriteInstance = function () {
+  this.spriteFile = im();
+  this.spriteFile.out('-background', 'none');
 };
 
 Sprites.prototype.tempDirectory = function (destSource, create) {
@@ -109,7 +118,7 @@ Sprites.prototype.getSourceFiles = function (files) {
 
 Sprites.prototype.combine = function (files) {
   var deferred = Q.defer();
-  async.each(files, this.processFile.bind(this), function (err) {
+  async.eachLimit(files, 1, this.processFile.bind(this), function (err) {
     if (err) {
       deferred.reject(new Error(err));
     } else {
@@ -121,8 +130,10 @@ Sprites.prototype.combine = function (files) {
 
 Sprites.prototype.processFile = function (fileName, callback) {
   var _this = this,
-      filePath = this.sourceDir + '/' + fileName,
-      newFile = this.tmpOutput + '/' + fileName;
+      path = this.renderRetina ? this.retinaSourceDir : this.sourceDir,
+      filePath = path + '/' + fileName,
+      newFile = this.tmpOutput + '/' + fileName,
+      data;
 
   if (!fs.existsSync(filePath)) {
     throw new Error('Source file "' + filePath + '" does not exist.');
@@ -131,17 +142,22 @@ Sprites.prototype.processFile = function (fileName, callback) {
   im(filePath)
     .size(function (err, size) {
       this.out('-background', 'none');
-      this.extent(size.width + _this.spacing, size.height + _this.spacing);
+      this.extent(size.width, size.height + _this.spacing);
       this.write(newFile, function (error) {
         if (error) throw error;
         im(newFile)
           .size(function (err, size) {
             if (err) throw err;
             this.spriteFile.append(newFile, this.specs.appendRight);
-            this.files.push({
+            data = {
               name: fileName,
               size: size
-            });
+            };
+            if (this.renderRetina) {
+              this.retinaFiles.push(data);
+            } else {
+              this.files.push(data);
+            }
             callback();
           }.bind(_this));
       });
@@ -152,37 +168,85 @@ Sprites.prototype.writeStyles = function () {
   var relPath = this.relativePath,
       spriteFile = relPath + '/' + path.basename(this.destPath),
       content = '',
+      backgroundSize,
+      retinaQuery = '',
+      retinaSpritePath,
+      width,
+      height,
       x = 0,
-      y = 0;
+      y = 0,
+      x2x = 0,
+      y2x = 0;
 
-  for (var i = 0, l = this.files.length; i < l; i++) {
-    content += util.format(
-      '.sprite("%s") {\n' +
-        '\tbackground-image: url("%s");\n' +
-        '\tbackground-position: %dpx %dpx;' +
-      '}\n',
-      this.files[i].name,
-      spriteFile,
-      x,
-      y
-    );
+  var createFile = function () {
+    for (var i = 0, l = this.files.length; i < l; i++) {
 
-    if (this.specs.appendRight) {
-      x -= this.files[i].size.width;
-    } else {
-      y -= this.files[i].size.height;
+      if (this.retina) {
+        retinaQuery = util.format(
+          '  @media all and (-webkit-min-device-pixel-ratio: 1.5),\n' +
+          '  (min--moz-device-pixel-ratio: 1.5),\n' +
+          '  (-o-min-device-pixel-ratio: 3/2), (min-device-pixel-ratio: 1.5) {\n' +
+          '    background-image: url("%s");\n' +
+          '    background-position: %dpx %dpx;\n' +
+          '    background-size: %dpx auto;\n' +
+          '  }\n',
+          retinaSpritePath, x2x, y2x, backgroundSize
+        );
+      }
+
+      height = this.files[i].size.height;
+      width = this.files[i].size.width;
+      content += util.format(
+        '.sprite("%s", @dimension: false) {\n' +
+        '  .size() when (@dimension) {\n' +
+        '    height: %dpx;\n' +
+        '    width: %dpx;\n' +
+        '  }\n' +
+        '  .size;\n' +
+        '  background-image: url("%s");\n' +
+        '  background-repeat: no-repeat;\n' +
+        '  background-position: %dpx %dpx;\n%s' +
+        '}\n',
+        this.files[i].name, height - this.spacing, width, spriteFile, x, y, retinaQuery
+      );
+
+      if (this.specs.appendRight) {
+        x -= this.files[i].size.width;
+      } else {
+        y -= this.files[i].size.height;
+      }
+
+      if (this.retina && this.specs.appendRight) {
+        x2x -= this.retinaFiles[i].size.width;
+      } else if (this.retina) {
+        y2x -= this.retinaFiles[i].size.height / 2;
+      }
     }
-  }
 
-  fs.writeFile(this.lessPath, content, function (err) {
-    if (err) throw err;
-  });
+    fs.writeFile(this.lessPath, content, function (err) {
+      if (err) throw err;
+    });
+  }.bind(this);
+
+  if (this.retina) {
+    retinaSpritePath = relPath + '/' + path.basename(this.retinaDestPath);
+
+    gm(this.retinaDestPath).size(function (err, size) {
+      if (err) throw err;
+      backgroundSize = Math.ceil(size.width / 2);
+      createFile();
+    });
+  } else {
+    createFile()
+  }
 };
 
 Sprites.prototype.readArgs = function () {
   var argv = process.argv.splice(2),
       specsFile = argv[0],
       specs;
+
+  this.retina = false;
 
   if (!argv.length || argv[0] == '-h' || argv[0] == '--help') {
     this.printUsage();
@@ -221,6 +285,12 @@ Sprites.prototype.readArgs = function () {
   }
   if (specs['direction']) {
     this.specs.appendRight = specs['direction'] == 'right';
+  }
+
+  if (specs['retina']) {
+    this.retina = true;
+    this.retinaDestPath = path.basename(specsFile, '.json') + '2x.png';
+    this.retinaDestPath = path.dirname(specsFile) + '/' + this.retinaDestPath;
   }
 
   this.createSprite(
