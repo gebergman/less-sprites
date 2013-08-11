@@ -47,15 +47,7 @@ Sprites.prototype.createSprite = function (sourceDir, sourceFiles, destPath, les
   this.spriteFile.out('-background', 'none');
 
   sourceFiles = this.getSourceFiles(sourceFiles);
-  if (sourceFiles[0] === '*') {
-    var files = fs.readdirSync(this.sourceDir);
-    sourceFiles = [];
-    files.forEach(function (element) {
-      if (element.match(/.png/i) !== null) {
-        sourceFiles.push(element);
-      }
-    });
-  }
+
 
   if (!sourceFiles.length) {
     throw new Error('No valid source files were provided.');
@@ -100,8 +92,15 @@ Sprites.prototype.getSourceFiles = function (files) {
 
   for (i = 0, l = files.length; i < l; i++) {
     file = path.basename(files[i]);
-    if (file.match(/.*\.png$/i) && file != this.destPath || file === "*") {
+    if (file.match(/.*\.png$/i) && file != this.destPath) {
       sourceFiles.push(file);
+    } else if (file === '*' && i === 0) {
+      sourceFiles = [];
+      fs.readdirSync(this.sourceDir).forEach(function (element) {
+        if (element.match(/.png/i) !== null) {
+          sourceFiles.push(element);
+        }
+      });
     }
   }
 
