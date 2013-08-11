@@ -111,12 +111,12 @@ which is later compiled into final CSS:
 	width: 69px;
 	background-repeat: no-repeat;
 	background: url("images/icons-sprite.png") 0px -20px;
-	@media (-webkit-min-device-pixel-ratio: 1.5), (min--moz-device-pixel-ratio: 1.5), (-o-min-device-pixel-ratio: 3/2), (min-device-pixel-ratio: 1.5) {
-		.icon-first {
-			background-image: url("/images/sprite-specs2x.png");
-			background-position: 0px 0px;
-			background-size: 270px auto;
-		}
+}
+@media (-webkit-min-device-pixel-ratio: 1.5), (min--moz-device-pixel-ratio: 1.5), (-o-min-device-pixel-ratio: 3/2), (min-device-pixel-ratio: 1.5) {
+	.icon-first {
+		background-image: url("/images/sprite-specs2x.png");
+		background-position: 0px 0px;
+		background-size: 270px auto;
 	}
 }
 
