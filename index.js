@@ -189,6 +189,9 @@ Sprites.prototype.writeStyles = function () {
           '    background-image: url("%s");\n' +
           '    background-position: %dpx %dpx;\n' +
           '    background-size: %dpx auto;\n' +
+          '    -moz-background-size: %dpx auto;\n' +
+          '    -o-background-size: %dpx auto;\n' +
+          '    -webkit-background-size: %dpx auto;\n' +
           '  }\n',
           retinaSpritePath, x2x, y2x, backgroundSize
         );
