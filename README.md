@@ -25,7 +25,7 @@ There are more options you can specify:
 	// Directory relative to the .json file where source files are located
 	"dir": "icons-sprite",
 	// List of source images (without directory) or "*" to use all PNG files
-	"files": ["icon1.png", "icon2.png"]
+	"files": ["icon1.png", "icon2.png"],
 	// Location and name of the final sprite, default is same as the .json file.
 	"sprite": "icons-sprite.png",
 	// The http path to the image (default: /images)
