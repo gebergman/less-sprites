@@ -193,7 +193,7 @@ Sprites.prototype.writeStyles = function () {
           '    -o-background-size: %dpx auto;\n' +
           '    -webkit-background-size: %dpx auto;\n' +
           '  }\n',
-          retinaSpritePath, x2x, y2x, backgroundSize
+          retinaSpritePath, x2x, y2x, backgroundSize, backgroundSize, backgroundSize, backgroundSize
         );
       }
 
