@@ -201,6 +201,8 @@ Sprites.prototype.writeStyles = function () {
       width = this.files[i].size.width;
       content += util.format(
         '.sprite("%s", @dimension: false) {\n' +
+        '   @image_height: %dpx;\n' +
+        '   @image_width: %dpx;\n' +
         '  .size() when (@dimension) {\n' +
         '    height: %dpx;\n' +
         '    width: %dpx;\n' +
@@ -210,8 +212,12 @@ Sprites.prototype.writeStyles = function () {
         '  background-repeat: no-repeat;\n' +
         '  background-position: %dpx %dpx;\n%s' +
         '}\n',
-        this.files[i].name, height - this.spacing, width, spriteFile, x, y, retinaQuery
+        this.files[i].name,
+        height - this.spacing, width,
+        height - this.spacing, width,
+        spriteFile, x, y, retinaQuery
       );
+
 
       if (this.specs.appendRight) {
         x -= this.files[i].size.width;
