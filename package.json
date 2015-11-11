@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "less-sprites",
   "version": "0.2.0",
   "author": "peteruhnak",
