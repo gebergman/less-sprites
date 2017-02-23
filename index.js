@@ -299,7 +299,7 @@ Sprites.prototype.readArgs = function () {
   if (specs['retina']) {
     this.retina = true;
     this.retinaDestPath = path.basename(specsFile, '.json') + '2x.png';
-    this.retinaDestPath = path.dirname(specsFile) + '/' + this.retinaDestPath;
+    this.retinaDestPath = path.join(path.dirname(specs['sprite']), this.retinaDestPath);
   }
 
   this.createSprite(
